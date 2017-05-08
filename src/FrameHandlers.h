@@ -32,6 +32,7 @@ class FrameHandlerService : public CSingleton<FrameHandlerService>
 
         void SendAdvertRequest(uint32_t startRevision = 0);
         void SendVLANDatabase();
+        void SendSummary(uint8_t followers = 0);
 };
 
 #define sFrameHandler FrameHandlerService::getInstance()

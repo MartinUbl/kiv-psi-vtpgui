@@ -328,7 +328,7 @@ bool FrameHandlerService::HandleSubsetAdvertisement(VTPHeader* header, SubsetAdv
 
         // TODO: fix MD5 input, otherwise the MD5 generated is different from MD5 received!
         uint8_t md5target[MD5_DIGEST_LENGTH];
-        vtp_generate_md5(sAppGlobals->g_VTPPassword.length() == 0 ? nullptr : sAppGlobals->g_VTPPassword.c_str(), m_lastUpdaterIdentity, frame->revision, (char*)header->domain_name, header->domain_len, &frame->data, (uint16_t)(dataLen - 4), md5target, header->version, (char*)m_lastUpdateTimestamp);
+        vtp_generate_md5(sAppGlobals->g_VTPPassword.length() == 0 ? nullptr : (char*)sAppGlobals->g_VTPPassword.c_str(), m_lastUpdaterIdentity, frame->revision, (char*)header->domain_name, header->domain_len, &frame->data, (uint16_t)(dataLen - 4), md5target, header->version, (char*)m_lastUpdateTimestamp);
 
         for (size_t j = 0; j < MD5_DIGEST_LENGTH; j++)
             printf("%.2X : %.2X\n", m_lastDigest[j], md5target[j]);
@@ -482,7 +482,7 @@ void FrameHandlerService::FillVLANInfoBlock(VLANRecord* vlan, std::vector<uint8_
     }
 }
 
-void FrameHandlerService::SendVLANDatabase()
+void FrameHandlerService::SendSummary(uint8_t followers)
 {
     // contains probably more settings, for now, we know about pruning setting (06 01 00 02 = pruning off)
     const uint8_t mysteryData[MYSTERY_DATA_LEN] = { 0, 0, 0, 1, 6, 1, 0, 2 };
@@ -496,7 +496,7 @@ void FrameHandlerService::SendVLANDatabase()
 
     header->version = 2;
     header->code = VTP_MSG_SUMMARY_ADVERT;
-    header->followers = 1; // TODO: count VLANs and split to more messages if needed
+    header->followers = followers;
     header->domain_len = (uint8_t)sAppGlobals->g_VTPDomain.length();
     memset(header->domain_name, 0, MAX_VTP_DOMAIN_LENGTH);
     strncpy((char*)header->domain_name, sAppGlobals->g_VTPDomain.c_str(), MAX_VTP_DOMAIN_LENGTH);
@@ -545,14 +545,19 @@ void FrameHandlerService::SendVLANDatabase()
     sNetwork->SendUsingTemplate(data, dataSize);
 
     delete[] data;
+}
+
+void FrameHandlerService::SendVLANDatabase()
+{
+    SendSummary(1);
 
     ///////// Subset Advert
 
     std::vector<uint8_t> vlanInfo;
     size_t fixedSize = sizeof(VTPHeader) + sizeof(SubsetAdvertPacketBody) - 1; /* subtract dummy placeholder */
-    data = new uint8_t[fixedSize];
+    uint8_t* data = new uint8_t[fixedSize];
 
-    header = (VTPHeader*)data;
+    VTPHeader* header = (VTPHeader*)data;
     SubsetAdvertPacketBody* frame2 = (SubsetAdvertPacketBody*)(data + sizeof(VTPHeader));
 
     header->version = 2;
@@ -564,10 +569,11 @@ void FrameHandlerService::SendVLANDatabase()
 
     frame2->revision = m_currentRevision;
 
+    std::ostringstream ss;
     ss.str(std::string());
 
-    dump = new FrameDumpContents;
-    sBase = 0;
+    FrameDumpContents* dump = new FrameDumpContents;
+    size_t sBase = 0;
 
     ADD_DUMP_ENTRY(dump, "VTP version", std::to_string(header->version), sBase, 1);
     ADD_DUMP_ENTRY(dump, "VTP code", std::to_string(header->code), sBase, 1);
@@ -582,7 +588,7 @@ void FrameHandlerService::SendVLANDatabase()
     for (auto vpair : vlans)
         FillVLANInfoBlock(vpair.second, vlanInfo, dump, sBase);
 
-    dataSize = (uint16_t)(fixedSize + vlanInfo.size());
+    uint16_t dataSize = (uint16_t)(fixedSize + vlanInfo.size());
     uint8_t *finalData = new uint8_t[dataSize];
     memcpy(finalData, data, fixedSize);
     memcpy(finalData + fixedSize, &vlanInfo[0], vlanInfo.size());

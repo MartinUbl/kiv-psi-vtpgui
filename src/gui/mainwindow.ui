@@ -348,6 +348,18 @@
           </widget>
          </item>
          <item>
+          <widget class="QPushButton" name="summarySendButton">
+           <property name="font">
+            <font>
+             <pointsize>7</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>Send summary</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <spacer name="verticalSpacer">
            <property name="orientation">
             <enum>Qt::Vertical</enum>
