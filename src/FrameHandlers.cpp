@@ -342,6 +342,16 @@ bool FrameHandlerService::HandleAdvertisementRequest(VTPHeader* header, AdvertRe
 {
     ToHostEndianity(frame);
 
+    size_t sBase = 0;
+
+    ADD_DUMP_ENTRY(dump, "VTP version", std::to_string(header->version), sBase, 1);
+    ADD_DUMP_ENTRY(dump, "VTP code", std::to_string(header->code), sBase, 1);
+    ADD_DUMP_ENTRY(dump, "Sequence number", std::to_string(header->sequence_nr), sBase, 1);
+    ADD_DUMP_ENTRY(dump, "Domain length", std::to_string(header->domain_len), sBase, 1);
+    ADD_DUMP_ENTRY(dump, "Domain name", std::string((const char*)header->domain_name, MAX_VTP_DOMAIN_LENGTH), sBase, MAX_VTP_DOMAIN_LENGTH);
+
+    ADD_DUMP_ENTRY(dump, "Revision", std::to_string(frame->start_revision), sBase, 4);
+
     return true;
 }
 
