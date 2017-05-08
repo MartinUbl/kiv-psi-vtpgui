@@ -23,12 +23,15 @@ class FrameHandlerService : public CSingleton<FrameHandlerService>
         bool HandleSubsetAdvertisement(VTPHeader* header, SubsetAdvertPacketBody* frame, size_t dataLen, FrameDumpContents* dump);
         bool HandleAdvertisementRequest(VTPHeader* header, AdvertRequestPacketBody* frame, size_t dataLen, FrameDumpContents* dump);
 
+        void FillVLANInfoBlock(VLANRecord* vlan, std::vector<uint8_t> &target, FrameDumpContents* dump, size_t& sBase);
+
     public:
         FrameHandlerService();
 
         bool HandleIncoming(pcap_pkthdr *header, const uint8_t* data);
 
         void SendAdvertRequest(uint32_t startRevision = 0);
+        void SendVLANDatabase();
 };
 
 #define sFrameHandler FrameHandlerService::getInstance()

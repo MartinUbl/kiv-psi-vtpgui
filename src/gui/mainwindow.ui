@@ -315,7 +315,7 @@
             </font>
            </property>
            <property name="text">
-            <string>Advertisement Request</string>
+            <string>Advertisement request</string>
            </property>
           </widget>
          </item>
@@ -329,6 +329,21 @@
            </property>
            <property name="text">
             <string>Clear all</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="sendVlansButton">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="font">
+            <font>
+             <pointsize>7</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>Send VLAN Database</string>
            </property>
           </widget>
          </item>

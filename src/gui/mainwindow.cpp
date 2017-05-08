@@ -66,6 +66,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui()
     connect(ui.vlanTableView, SIGNAL(clicked(const QModelIndex &)), this, SLOT(VLANItem_Selected(const QModelIndex &)));
     connect(ui.advertRequestSendButton, SIGNAL(clicked()), this, SLOT(AdvertReqButton_Clicked()));
     connect(ui.clearAllButton, SIGNAL(clicked()), this, SLOT(ClearAllButton_Clicked()));
+    connect(ui.sendVlansButton, SIGNAL(clicked()), this, SLOT(SendVlansButton_Clicked()));
     connect(ui.actionAboutApp, SIGNAL(triggered()), this, SLOT(ActionAbout_Clicked()));
     connect(ui.actionTerminateApp, SIGNAL(triggered()), this, SLOT(ActionExit_Clicked()));
 }
@@ -245,6 +246,17 @@ void MainWindow::ClearAllButton_Clicked()
     ui.trafficTableView->horizontalHeader()->setStretchLastSection(true);
 }
 
+void MainWindow::SendVlansButton_Clicked()
+{
+    if (m_vlans.empty())
+    {
+        QMessageBox::critical(this, "Error", "VLAN database is empty!", QMessageBox::StandardButton::Ok);
+        return;
+    }
+
+    sFrameHandler->SendVLANDatabase();
+}
+
 void MainWindow::ActionAbout_Clicked()
 {
     QMessageBox about;
@@ -262,6 +274,14 @@ void MainWindow::ActionAbout_Clicked()
 
 void MainWindow::ActionExit_Clicked()
 {
+    sNetwork->Finalize();
+    QApplication::exit(0);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    event->ignore();
+    sNetwork->Finalize();
     QApplication::exit(0);
 }
 

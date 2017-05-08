@@ -7,6 +7,8 @@
 #include <pcap.h>
 #include <list>
 
+#include <thread>
+
 enum class SendingTemplate
 {
     NET_SEND_TEMPLATE_NONE      = 0,
@@ -24,6 +26,7 @@ struct NetworkDeviceListEntry
 class NetworkService : public CSingleton<NetworkService>
 {
     private:
+        std::thread* m_networkThread;
         pcap_t* m_dev;
         SendingTemplate m_sendingTemplate;
 
@@ -31,6 +34,9 @@ class NetworkService : public CSingleton<NetworkService>
         uint16_t m_headerLenght;
 
         uint16_t* m_headerDataLengthField;
+        uint8_t* m_sourceMacField;
+
+        bool m_running;
 
     protected:
         void _Run();
@@ -43,6 +49,7 @@ class NetworkService : public CSingleton<NetworkService>
         int SelectDevice(const char* pcapName, std::string& err);
 
         void Run();
+        void Finalize();
 
         bool HasSendingTemplate();
         void SetSendingTemplate(SendingTemplate templType, uint16_t vlanId = 0);

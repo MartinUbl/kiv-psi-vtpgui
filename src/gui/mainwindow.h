@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QStandardItemModel>
+#include <QCloseEvent>
 
 #include "ui_mainwindow.h"
 #include "../GUIDefs.h"
@@ -37,12 +38,15 @@ class MainWindow : public QMainWindow
 
         int selectedTrafficItem;
 
+        void closeEvent(QCloseEvent *event);
+
     private slots:
         void TrafficItem_Selected(const QModelIndex &);
         void TrafficDumpItem_Selected(const QModelIndex &);
         void VLANItem_Selected(const QModelIndex &);
         void AdvertReqButton_Clicked();
         void ClearAllButton_Clicked();
+        void SendVlansButton_Clicked();
 
         void ActionAbout_Clicked();
         void ActionExit_Clicked();

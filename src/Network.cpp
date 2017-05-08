@@ -4,8 +4,6 @@
 #include "FrameHandlers.h"
 #include "Globals.h"
 
-#include <thread>
-
 NetworkService::NetworkService()
 {
     m_sendingTemplate = SendingTemplate::NET_SEND_TEMPLATE_NONE;
@@ -54,6 +52,8 @@ int NetworkService::GetDeviceList(std::list<NetworkDeviceListEntry>& target)
         target.push_back(dev);
     }
 
+    pcap_freealldevs(alldevs);
+
     if (target.size() == 0)
     {
         std::cerr << "No interfaces found!" << std::endl;
@@ -84,6 +84,7 @@ int NetworkService::SelectDevice(const char* pcapName, std::string& err)
 
     for (size_t i = 0; i < MAC_ADDR_LENGTH; i++)
         sAppGlobals->g_MACAddress[i] = (uint8_t)(0xF0 + i);
+    memcpy(m_sourceMacField, sAppGlobals->g_MACAddress, MAC_ADDR_LENGTH);
 
     return 0;
 }
@@ -94,11 +95,13 @@ void NetworkService::_Run()
     pcap_pkthdr *header;
     const uint8_t *pkt_data;
 
+    m_running = true;
+
     // packet dump loop
-    while ((res = pcap_next_ex(m_dev, &header, &pkt_data)) >= 0)
+    while (m_running && (res = pcap_next_ex(m_dev, &header, &pkt_data)) >= 0)
     {
         // timeout
-        if (res == 0)
+        if (res <= 0)
             continue;
 
         sFrameHandler->HandleIncoming(header, pkt_data);
@@ -107,8 +110,15 @@ void NetworkService::_Run()
 
 void NetworkService::Run()
 {
-    std::thread thr(&NetworkService::_Run, this);
-    thr.detach();
+    m_networkThread = new std::thread(&NetworkService::_Run, this);
+}
+
+void NetworkService::Finalize()
+{
+    m_running = false;
+    pcap_close(m_dev);
+
+    m_networkThread->join();
 }
 
 bool NetworkService::HasSendingTemplate()
@@ -138,6 +148,7 @@ void NetworkService::SetSendingTemplate(SendingTemplate templType, uint16_t vlan
             memcpy(eh->dest_mac, VTP_Dest_MAC, MAC_ADDR_LENGTH);
             eh->frame_length = 0;
             m_headerDataLengthField = &eh->frame_length;
+            m_sourceMacField = eh->src_mac;
             break;
         }
         case SendingTemplate::NET_SEND_TEMPLATE_DOT1Q:
@@ -154,6 +165,7 @@ void NetworkService::SetSendingTemplate(SendingTemplate templType, uint16_t vlan
             eh->tci = ((DOT1Q_VTP_PCP & 0x0007) << 13) | ((DOT1Q_VTP_DEI & 0x0001) << 12) | vlanId & 0x0FFF;
             eh->frame_length = 0;
             m_headerDataLengthField = &eh->frame_length;
+            m_sourceMacField = eh->src_mac;
             break;
         }
         default:
@@ -172,14 +184,16 @@ void NetworkService::SetSendingTemplate(SendingTemplate templType, uint16_t vlan
 
 void NetworkService::SendUsingTemplate(uint8_t* data, uint16_t dataLength)
 {
-    uint8_t *assembled = new uint8_t[m_headerLenght + dataLength];
+    size_t totalLen = m_headerLenght + dataLength;
 
-    *m_headerDataLengthField = htons(dataLength + m_headerLenght - sizeof(EthernetHeader));
+    uint8_t *assembled = new uint8_t[totalLen];
+
+    *m_headerDataLengthField = htons((uint16_t)(totalLen - sizeof(EthernetHeader)));
 
     memcpy(assembled, m_header, m_headerLenght);
     memcpy(assembled + m_headerLenght, data, dataLength);
 
-    if (pcap_sendpacket(m_dev, assembled, m_headerLenght + dataLength) != 0)
+    if (pcap_sendpacket(m_dev, assembled, totalLen) != 0)
         std::cerr << "Unable to send frame via pcap device" << std::endl;
 
     delete[] assembled;
