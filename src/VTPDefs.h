@@ -1,3 +1,12 @@
+/********************************
+ * KIV/PSI: VTP node            *
+ * Semestral work               *
+ *                              *
+ * Author: Martin UBL           *
+ *         A16N0026P            *
+ *         ublm@students.zcu.cz *
+ ********************************/
+
 #ifndef VTP_DEFS_H
 #define VTP_DEFS_H
 
@@ -40,7 +49,7 @@ enum VTPMsgCode
     VTP_MSG_SUMMARY_ADVERT = 1,
     VTP_MSG_SUBSET_ADVERT = 2,
     VTP_MSG_ADVERT_REQUEST = 3,
-    VTP_MSG_JOIN = 4,    // TODO: verify
+    VTP_MSG_JOIN = 4,
     VTP_MSG_TAKEOVER_REQUEST = 5,
     VTP_MSG_TAKEOVER_RESPONSE = 6
 };
@@ -108,6 +117,7 @@ enum VLANFeature
     MAX_VLAN_FEATURE        = 0x0B, // no more known features
 };
 
+// "translations" of VLAN features for GUI output
 static const char* VLANFeatureNames[MAX_VLAN_FEATURE] = {
     "Feature - none",
     "Ring No.",

@@ -1,3 +1,12 @@
+/********************************
+ * KIV/PSI: VTP node            *
+ * Semestral work               *
+ *                              *
+ * Author: Martin UBL           *
+ *         A16N0026P            *
+ *         ublm@students.zcu.cz *
+ ********************************/
+
 #ifndef VLAN_DATABASE_H
 #define VLAN_DATABASE_H
 
@@ -6,12 +15,16 @@
 
 typedef std::map<uint16_t, VLANRecord*> VLANMap;
 
+/*
+ * VLAN database structure - used to store VLAN data
+ */
 class VLANDatabaseService : public CSingleton<VLANDatabaseService>
 {
     private:
         VLANMap m_vlans;
 
     protected:
+        // reduces stored VLANs to supplied set only
         void _ReduceVLANSet(std::set<uint16_t> const &vlanSet);
 
     public:

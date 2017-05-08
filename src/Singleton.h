@@ -1,3 +1,12 @@
+/********************************
+ * KIV/PSI: VTP node            *
+ * Semestral work               *
+ *                              *
+ * Author: Martin UBL           *
+ *         A16N0026P            *
+ *         ublm@students.zcu.cz *
+ ********************************/
+
 #pragma once
 
 #include <memory>

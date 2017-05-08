@@ -1,3 +1,12 @@
+/********************************
+ * KIV/PSI: VTP node            *
+ * Semestral work               *
+ *                              *
+ * Author: Martin UBL           *
+ *         A16N0026P            *
+ *         ublm@students.zcu.cz *
+ ********************************/
+
 #include "general.h"
 #include "FrameHandlers.h"
 
@@ -11,6 +20,8 @@
 #include <openssl/md5.h>
 #include <sstream>
 #include <iomanip>
+
+// implementation of frame endianity converting functions
 
 template<> void ToNetworkEndianity<SummaryAdvertPacketBody>(SummaryAdvertPacketBody* pkt)
 {
@@ -63,10 +74,23 @@ FrameHandlerService::FrameHandlerService()
     m_currentRevision = 0;
 }
 
+// length of unknown data present in tail section of every summary advert frame
 #define MYSTERY_DATA_LEN 8
+const uint8_t mysteryData[MYSTERY_DATA_LEN] = { 0, 0, 0, 1, 6, 1, 0, 2 }; // VTP version 2, probably TLV count (32), and TLV values (8-8-16)
+//const uint8_t mysteryData[MYSTERY_DATA_LEN] = { 1, 1, 0, 2, 0 }; // VTP version 1, all unknown except field index 2, thats VTP pruning setting
 
+// Generate MD5 hash from supplied data
 int8_t vtp_generate_md5(char *secret, uint32_t updater, uint32_t revision, char *domain, uint8_t dom_len, uint8_t *vlans, uint16_t vlans_len, u_int8_t *md5, uint8_t version, char* timestamp)
 {
+    /**
+     * Note: This method does not work as intended and causes clients to not accept data from this node
+     *       TODO: find (probably reverse-engineer from IOS image) proper way to perform MD5 hash on VLAN data
+     *
+     * Note for future research: it may be good idea to figure out, which fields do have impact on MD5 hash;
+     * this could be done by changing the field, and not changing the MD5 hash field and see, if the client
+     * accepts the VLAN database or not.
+     **/
+
     uint8_t* data, md5_secret[MD5_DIGEST_LENGTH];
     VTPHeader* vtp_hdr;
     SummaryAdvertPacketBody* vtp_summ;
@@ -74,6 +98,7 @@ int8_t vtp_generate_md5(char *secret, uint32_t updater, uint32_t revision, char 
     if ((data = (uint8_t*)calloc(1, (MD5_DIGEST_LENGTH + sizeof(VTPHeader) + sizeof(SummaryAdvertPacketBody) + MYSTERY_DATA_LEN + vlans_len + MD5_DIGEST_LENGTH))) == NULL)
         return -1;
 
+    // if there's a password, use it on both sides of hashed data
     if (secret)
     {
         MD5_CTX c;
@@ -84,6 +109,8 @@ int8_t vtp_generate_md5(char *secret, uint32_t updater, uint32_t revision, char 
 
         memcpy(data, md5_secret, MD5_DIGEST_LENGTH);
     }
+
+    // the idea is to basically perform MD5 hashing on summary advert packet with nullified (calloc) md5 part and appended all vlan data
 
     vtp_hdr = (VTPHeader*)(data + MD5_DIGEST_LENGTH);
     vtp_summ = (SummaryAdvertPacketBody*)(data + MD5_DIGEST_LENGTH + sizeof(VTPHeader));
@@ -97,13 +124,12 @@ int8_t vtp_generate_md5(char *secret, uint32_t updater, uint32_t revision, char 
     vtp_summ->revision = htonl(revision);
     memcpy(vtp_summ->update_timestamp, timestamp, VTP_TIMESTAMP_LEN);
 
-    const uint8_t mysteryData[MYSTERY_DATA_LEN] = { 0, 0, 0, 1, 6, 1, 0, 2 };
-    //const uint8_t mysteryData[MYSTERY_DATA_LEN] = { 1, 1, 0, 2, 0 };
     memcpy((void *)(data + MD5_DIGEST_LENGTH + sizeof(VTPHeader) + sizeof(SummaryAdvertPacketBody)), mysteryData, MYSTERY_DATA_LEN);
 
     if (vlans_len)
         memcpy((void *)(data + MD5_DIGEST_LENGTH + sizeof(VTPHeader) + sizeof(SummaryAdvertPacketBody) + MYSTERY_DATA_LEN), vlans, vlans_len);
 
+    // copy secret MD5 hash to the end of packet if present
     if (secret)
         memcpy((void *)(data + MD5_DIGEST_LENGTH + sizeof(VTPHeader) + sizeof(SummaryAdvertPacketBody) + MYSTERY_DATA_LEN + vlans_len), md5_secret, MD5_DIGEST_LENGTH);
 
@@ -126,6 +152,7 @@ bool FrameHandlerService::HandleSummaryAdvertisement(VTPHeader* header, SummaryA
 
     size_t sBase = 0;
 
+    // append dump data
     ADD_DUMP_ENTRY(dump, "VTP version", std::to_string(header->version), sBase, 1);
     ADD_DUMP_ENTRY(dump, "VTP code", std::to_string(header->code), sBase, 1);
     ADD_DUMP_ENTRY(dump, "Followers", std::to_string(header->followers), sBase, 1);
@@ -140,6 +167,7 @@ bool FrameHandlerService::HandleSummaryAdvertisement(VTPHeader* header, SummaryA
     ADD_DUMP_ENTRY(dump, "Updater ID", updater, sBase, 4);
     ADD_DUMP_ENTRY(dump, "Timestamp", std::string((const char*)frame->update_timestamp, VTP_TIMESTAMP_LENGTH), sBase, VTP_TIMESTAMP_LENGTH);
 
+    // build MD5 hash string for dump
     std::ostringstream ss;
 
     size_t pp;
@@ -149,6 +177,7 @@ bool FrameHandlerService::HandleSummaryAdvertisement(VTPHeader* header, SummaryA
 
     ADD_DUMP_ENTRY(dump, "MD5 Digest", ss.str().c_str(), sBase, VTP_MD5_LENGTH);
 
+    // parse additional fields from "mystery" section
     if (dataLen + 4 > sizeof(SummaryAdvertPacketBody))
     {
         uint8_t* addData = (uint8_t*)(frame + 1);
@@ -169,6 +198,7 @@ bool FrameHandlerService::HandleSummaryAdvertisement(VTPHeader* header, SummaryA
             ADD_DUMP_ENTRY(dump, "Unknown", std::to_string(addData[3]), sBase, 1);
 
             size_t pos = 4;
+            // TLV parsing
             while (pos + 1 < dataLen - sizeof(SummaryAdvertPacketBody) + 4)
             {
                 uint8_t type = addData[pos];
@@ -184,11 +214,13 @@ bool FrameHandlerService::HandleSummaryAdvertisement(VTPHeader* header, SummaryA
                     ADD_DUMP_ENTRY(dump, "Length", std::to_string(len), sBase, 1);
                 ADD_DUMP_ENTRY(dump, "Value", std::to_string(val), sBase, 2);
 
+                // move to next TLV block
                 pos += 2 + len * 2;
             }
         }
     }
 
+    // received newer revision
     if (frame->revision > m_currentRevision)
     {
         std::cout << "VTP: received newer revision summary rev: " << frame->revision << " (local: " << m_currentRevision << ")" << std::endl;
@@ -202,9 +234,10 @@ bool FrameHandlerService::HandleSummaryAdvertisement(VTPHeader* header, SummaryA
         memcpy(m_lastUpdateTimestamp, frame->update_timestamp, VTP_TIMESTAMP_LEN);
         m_lastUpdaterIdentity = frame->updater_id;
     }
+    // received older revision
     else if (frame->revision < m_currentRevision)
         std::cout << "VTP: received older revision summary rev: " << frame->revision << " (local: " << m_currentRevision << "); the network is in inconsistent state" << std::endl;
-    else
+    else // received current revision
     {
         std::cout << "VTP: received current revision summary rev: " << frame->revision << std::endl;
 
@@ -274,6 +307,7 @@ bool FrameHandlerService::HandleSubsetAdvertisement(VTPHeader* header, SubsetAdv
             ADD_DUMP_ENTRY(dump, "VLAN " + std::to_string(cur->isl_vlan_id) + " - name", name.c_str(), sBase, name_padded);
 
             vlan->features.clear();
+            // extract features from TLV-encoded blocks
             for (size_t g = offset + sizeof(SubsetVLANInfoBody) - 1 + name_padded; g < offset + cur->length; g += 4)
             {
                 uint8_t col_id = (*(&frame->data + g));
@@ -287,7 +321,9 @@ bool FrameHandlerService::HandleSubsetAdvertisement(VTPHeader* header, SubsetAdv
                 ADD_DUMP_ENTRY(dump, "VLAN " + std::to_string(cur->isl_vlan_id) + " - feature len", std::to_string(par), sBase, 1);
                 ADD_DUMP_ENTRY(dump, "VLAN " + std::to_string(cur->isl_vlan_id) + " - feature value", std::to_string(val), sBase, 2);
 
-                // TODO: elaborate with "par" value - 1 probably means single value, 2 probably means two values padded to next field
+                // TODO: elaborate with "par" value ("length", but somehow mangled) - 1 probably means single value, 2 probably means two values padded to next field
+
+                // only exception seen is trans value spanned to two columns
                 if (col_id == VLAN_FEAT_TRANS1 && par == 2)
                 {
                     g += 4;
@@ -342,6 +378,8 @@ bool FrameHandlerService::HandleAdvertisementRequest(VTPHeader* header, AdvertRe
 {
     ToHostEndianity(frame);
 
+    // just dump packet, we don't handle it
+
     size_t sBase = 0;
 
     ADD_DUMP_ENTRY(dump, "VTP version", std::to_string(header->version), sBase, 1);
@@ -357,12 +395,15 @@ bool FrameHandlerService::HandleAdvertisementRequest(VTPHeader* header, AdvertRe
 
 void FrameHandlerService::SendAdvertRequest(uint32_t startRevision)
 {
+    // prepare data structures and memory
+
     uint16_t dataSize = sizeof(VTPHeader) + sizeof(AdvertRequestPacketBody);
 
     uint8_t *data = new uint8_t[dataSize];
     VTPHeader* header = (VTPHeader*)data;
     AdvertRequestPacketBody* frame = (AdvertRequestPacketBody*)(data + sizeof(VTPHeader));
 
+    // prepare header
     header->version = 2;
     header->code = VTP_MSG_ADVERT_REQUEST;
     header->reserved = 0;
@@ -370,9 +411,10 @@ void FrameHandlerService::SendAdvertRequest(uint32_t startRevision)
     memset(header->domain_name, 0, MAX_VTP_DOMAIN_LENGTH);
     strncpy((char*)header->domain_name, sAppGlobals->g_VTPDomain.c_str(), MAX_VTP_DOMAIN_LENGTH);
 
+    // fill frame contents
     frame->start_revision = startRevision;
 
-
+    // prepare dump
     std::ostringstream ss;
 
     FrameDumpContents* dump = new FrameDumpContents;
@@ -458,6 +500,8 @@ void FrameHandlerService::FillVLANInfoBlock(VLANRecord* vlan, std::vector<uint8_
 
     target[sizePos] = (uint8_t)(target.size() - sizePos);
 
+    // build dump
+
     ADD_DUMP_ENTRY(dump, "VLAN " + std::to_string(vlan->id) + " - block length", std::to_string(target.size() - sizePos), sBase, 1);
     ADD_DUMP_ENTRY(dump, "VLAN " + std::to_string(vlan->id) + " - status", std::to_string(vlan->status), sBase, 1);
     ADD_DUMP_ENTRY(dump, "VLAN " + std::to_string(vlan->id) + " - type", std::to_string(vlan->type), sBase, 1);
@@ -494,8 +538,7 @@ void FrameHandlerService::FillVLANInfoBlock(VLANRecord* vlan, std::vector<uint8_
 
 void FrameHandlerService::SendSummary(uint8_t followers)
 {
-    // contains probably more settings, for now, we know about pruning setting (06 01 00 02 = pruning off)
-    const uint8_t mysteryData[MYSTERY_DATA_LEN] = { 0, 0, 0, 1, 6, 1, 0, 2 };
+    // prepare structures and data
 
     uint16_t dataSize = sizeof(VTPHeader) + sizeof(SummaryAdvertPacketBody) + MYSTERY_DATA_LEN;
 
@@ -504,6 +547,7 @@ void FrameHandlerService::SendSummary(uint8_t followers)
     SummaryAdvertPacketBody* frame = (SummaryAdvertPacketBody*)(data + sizeof(VTPHeader));
     memcpy(data + sizeof(VTPHeader) + sizeof(SummaryAdvertPacketBody), mysteryData, MYSTERY_DATA_LEN);
 
+    // fill header
     header->version = 2;
     header->code = VTP_MSG_SUMMARY_ADVERT;
     header->followers = followers;
@@ -511,11 +555,13 @@ void FrameHandlerService::SendSummary(uint8_t followers)
     memset(header->domain_name, 0, MAX_VTP_DOMAIN_LENGTH);
     strncpy((char*)header->domain_name, sAppGlobals->g_VTPDomain.c_str(), MAX_VTP_DOMAIN_LENGTH);
 
+    // fill frame contents
     frame->revision = m_currentRevision;
     frame->updater_id = m_lastUpdaterIdentity;
     memcpy(frame->update_timestamp, m_lastUpdateTimestamp, VTP_TIMESTAMP_LENGTH);
     memcpy(frame->md5_digest, m_lastDigest, VTP_MD5_LENGTH);
 
+    // prepare dump data
     std::ostringstream ss;
 
     FrameDumpContents* dump = new FrameDumpContents;
@@ -539,6 +585,7 @@ void FrameHandlerService::SendSummary(uint8_t followers)
     ADD_DUMP_ENTRY(dump, "Updater ID", updater, sBase, 4);
     ADD_DUMP_ENTRY(dump, "Timestamp", std::string((const char*)frame->update_timestamp, VTP_TIMESTAMP_LENGTH), sBase, VTP_TIMESTAMP_LENGTH);
 
+    // prepare MD5 hex string to dump
     ss.str(std::string());
 
     size_t pp;
@@ -559,9 +606,10 @@ void FrameHandlerService::SendSummary(uint8_t followers)
 
 void FrameHandlerService::SendVLANDatabase()
 {
+    // summary advert always precedes subset advert
     SendSummary(1);
 
-    ///////// Subset Advert
+    // now send subset advert
 
     std::vector<uint8_t> vlanInfo;
     size_t fixedSize = sizeof(VTPHeader) + sizeof(SubsetAdvertPacketBody) - 1; /* subtract dummy placeholder */
@@ -570,6 +618,7 @@ void FrameHandlerService::SendVLANDatabase()
     VTPHeader* header = (VTPHeader*)data;
     SubsetAdvertPacketBody* frame2 = (SubsetAdvertPacketBody*)(data + sizeof(VTPHeader));
 
+    // prepare header
     header->version = 2;
     header->code = VTP_MSG_SUBSET_ADVERT;
     header->sequence_nr = 1; // TODO: count VLANs and split to more messages if needed
@@ -582,6 +631,7 @@ void FrameHandlerService::SendVLANDatabase()
     std::ostringstream ss;
     ss.str(std::string());
 
+    // prepare dump data
     FrameDumpContents* dump = new FrameDumpContents;
     size_t sBase = 0;
 
@@ -595,9 +645,11 @@ void FrameHandlerService::SendVLANDatabase()
 
     VLANMap const& vlans = sVLANDatabase->GetVLANMap();
 
+    // fill VLAN blocks into vector, to be later copied to final frame
     for (auto vpair : vlans)
         FillVLANInfoBlock(vpair.second, vlanInfo, dump, sBase);
 
+    // prepare final data frame
     uint16_t dataSize = (uint16_t)(fixedSize + vlanInfo.size());
     uint8_t *finalData = new uint8_t[dataSize];
     memcpy(finalData, data, fixedSize);
@@ -700,6 +752,7 @@ bool FrameHandlerService::HandleIncoming(pcap_pkthdr *header, const uint8_t* dat
 
     std::ostringstream ss;
 
+    // dump contents to long hexa string to be displayed in GUI
     FrameDumpContents* dump = new FrameDumpContents;
     uint8_t* rawData = (uint8_t*)vtphdr;
     size_t rawLength = header->caplen - ((uint8_t*)vtphdr - data);
@@ -723,8 +776,16 @@ bool FrameHandlerService::HandleIncoming(pcap_pkthdr *header, const uint8_t* dat
             sAppGlobals->g_MainWindow->AddTrafficEntry((uint64_t)time(nullptr), false, vtphdr->code, "3 - Advertisement Request", dump);
             break;
         case VTP_MSG_JOIN:
-        case VTP_MSG_TAKEOVER_REQUEST:
-        case VTP_MSG_TAKEOVER_RESPONSE:
+            sAppGlobals->g_MainWindow->AddTrafficEntry((uint64_t)time(nullptr), false, vtphdr->code, "4 - Join", dump);
+            // not implemented
+            break;
+        case VTP_MSG_TAKEOVER_REQUEST:  // VTPv3
+            sAppGlobals->g_MainWindow->AddTrafficEntry((uint64_t)time(nullptr), false, vtphdr->code, "5 - Takeover request", dump);
+            // not implemented
+            break;
+        case VTP_MSG_TAKEOVER_RESPONSE: // VTPv3
+            sAppGlobals->g_MainWindow->AddTrafficEntry((uint64_t)time(nullptr), false, vtphdr->code, "5 - Takeover response", dump);
+            // not implemented
             break;
         default:
             std::cerr << "VTP: received unknown message with code " << (int)vtphdr->code << std::endl;

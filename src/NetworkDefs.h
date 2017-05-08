@@ -1,3 +1,12 @@
+/********************************
+ * KIV/PSI: VTP node            *
+ * Semestral work               *
+ *                              *
+ * Author: Martin UBL           *
+ *         A16N0026P            *
+ *         ublm@students.zcu.cz *
+ ********************************/
+
 #ifndef NETWORK_DEFS_H
 #define NETWORK_DEFS_H
 

@@ -1,3 +1,12 @@
+/********************************
+ * KIV/PSI: VTP node            *
+ * Semestral work               *
+ *                              *
+ * Author: Martin UBL           *
+ *         A16N0026P            *
+ *         ublm@students.zcu.cz *
+ ********************************/
+
 #include "general.h"
 #include "Network.h"
 
@@ -6,6 +15,7 @@
 
 NetworkService::NetworkService()
 {
+    // default to 802.3 Ethernet
     m_sendingTemplate = SendingTemplate::NET_SEND_TEMPLATE_NONE;
     SetSendingTemplate(SendingTemplate::NET_SEND_TEMPLATE_8023, 0);
     m_sendingTemplate = SendingTemplate::NET_SEND_TEMPLATE_NONE;
@@ -19,6 +29,7 @@ int NetworkService::GetDeviceList(std::list<NetworkDeviceListEntry>& target)
     char dsaddr[32];
     pcap_addr* ad;
 
+    // get all devices
 #ifdef _WIN32
     if (pcap_findalldevs_ex(PCAP_SRC_IF_STRING, NULL, &alldevs, errbuf) == -1)
 #else
@@ -31,6 +42,7 @@ int NetworkService::GetDeviceList(std::list<NetworkDeviceListEntry>& target)
 
     target.clear();
 
+    // parse devices to list
     for (d = alldevs; d; d = d->next)
     {
         NetworkDeviceListEntry dev;
@@ -67,6 +79,7 @@ int NetworkService::SelectDevice(const char* pcapName, std::string& err)
 {
     char errbuf[PCAP_ERRBUF_SIZE];
 
+    // open device if available
 #ifdef _WIN32
     m_dev = pcap_open(pcapName, 100, PCAP_OPENFLAG_PROMISCUOUS, 20, nullptr, errbuf);
 #else
