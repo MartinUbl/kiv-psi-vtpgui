@@ -5,7 +5,7 @@
 #include "devselectdialog.h"
 
 #include <QMessageBox>
-#include <QPixMap>
+#include <QPixmap>
 
 #include "../Network.h"
 #include "../FrameHandlers.h"
@@ -18,6 +18,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui()
     sAppGlobals->g_MainWindow = this;
 
     int res = -1;
+    std::string errbuf;
     do
     {
         devselectdialog diag(this);
@@ -36,20 +37,27 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui()
             }
         }
 
+        std::list<NetworkDeviceListEntry> devList;
+        sNetwork->GetDeviceList(devList);
+
+        if (res >= 0 && res < (int)devList.size())
+        {
+            auto itr = devList.begin();
+            std::advance(itr, res);
+
+            if (sNetwork->SelectDevice((*itr).pcapName.c_str(), errbuf) < 0)
+            {
+                QMessageBox::critical(this, "Error", ("Could not open selected device: " + errbuf).c_str());
+                res = -1;
+            }
+        }
+
     } while (res < 0);
-
-    std::list<NetworkDeviceListEntry> devList;
-    sNetwork->GetDeviceList(devList);
-
-    if (res < 0 || res >= (int)devList.size())
-        return;
 
     InitTableViews();
 
-    auto itr = devList.begin();
-    std::advance(itr, res);
-
-    sNetwork->SelectDevice((*itr).pcapName.c_str());
+    if (res < 0)
+        return;
 
     sNetwork->Run();
 

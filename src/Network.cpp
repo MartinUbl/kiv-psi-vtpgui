@@ -8,6 +8,7 @@
 
 NetworkService::NetworkService()
 {
+    m_sendingTemplate = SendingTemplate::NET_SEND_TEMPLATE_NONE;
     SetSendingTemplate(SendingTemplate::NET_SEND_TEMPLATE_8023, 0);
     m_sendingTemplate = SendingTemplate::NET_SEND_TEMPLATE_NONE;
 }
@@ -20,7 +21,11 @@ int NetworkService::GetDeviceList(std::list<NetworkDeviceListEntry>& target)
     char dsaddr[32];
     pcap_addr* ad;
 
+#ifdef _WIN32
     if (pcap_findalldevs_ex(PCAP_SRC_IF_STRING, NULL, &alldevs, errbuf) == -1)
+#else
+    if (pcap_findalldevs(&alldevs, errbuf) == -1)
+#endif
     {
         std::cerr << "Error in pcap_findalldevs_ex: " << errbuf << std::endl;
         return -1;
@@ -58,15 +63,20 @@ int NetworkService::GetDeviceList(std::list<NetworkDeviceListEntry>& target)
     return 0;
 }
 
-int NetworkService::SelectDevice(const char* pcapName)
+int NetworkService::SelectDevice(const char* pcapName, std::string& err)
 {
     char errbuf[PCAP_ERRBUF_SIZE];
 
+#ifdef _WIN32
     m_dev = pcap_open(pcapName, 100, PCAP_OPENFLAG_PROMISCUOUS, 20, nullptr, errbuf);
+#else
+    m_dev = pcap_open_live(pcapName, 100, 1, 20, errbuf);
+#endif
 
     if (!m_dev)
     {
         std::cerr << "Error opening adapter: " << errbuf << std::endl;
+        err = errbuf;
         return -1;
     }
 

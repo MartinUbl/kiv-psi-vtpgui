@@ -26,19 +26,28 @@ devselectdialog::devselectdialog(QWidget *parent) : QDialog(parent)
 
         for (NetworkDeviceListEntry& dev : devList)
         {
-            std::string item = dev.pcapDesc + " (";
+            std::string item = " (";
 
-            bool frst = true;
-            for (std::string& addr : dev.addresses)
+            if (dev.addresses.size() == 0)
             {
-                if (frst)
-                    frst = false;
-                else
-                    item += ", ";
+                item += "no address";
+            }
+            else
+            {
+                bool frst = true;
+                for (std::string& addr : dev.addresses)
+                {
+                    if (frst)
+                        frst = false;
+                    else
+                        item += ", ";
 
-                item += addr;
+                    item += addr;
+                }
             }
             item += "), "+dev.pcapName;
+            if (dev.pcapDesc.length() > 0)
+                item += ", "+dev.pcapDesc;
 
             sl.push_back(item.c_str());
         }

@@ -40,7 +40,7 @@ class NetworkService : public CSingleton<NetworkService>
 
         int GetDeviceList(std::list<NetworkDeviceListEntry>& target);
 
-        int SelectDevice(const char* pcapName);
+        int SelectDevice(const char* pcapName, std::string& err);
 
         void Run();
 
