@@ -1,0 +1,124 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="src\gui">
+      <UniqueIdentifier>{8a485c23-3c66-4abe-8b03-2988e955e0f4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Generated Files">
+      <UniqueIdentifier>{71ED8ED8-ACB9-4CE9-BBE1-E00B30144E11}</UniqueIdentifier>
+      <Extensions>moc;h;cpp</Extensions>
+      <ParseFiles>true</ParseFiles>
+    </Filter>
+    <Filter Include="Generated Files\Debug">
+      <UniqueIdentifier>{74d2ff5c-7218-4258-b115-4a186b65f219}</UniqueIdentifier>
+      <Extensions>cpp;moc</Extensions>
+      <SourceControlFiles>False</SourceControlFiles>
+    </Filter>
+    <Filter Include="Generated Files\Release">
+      <UniqueIdentifier>{1325e0da-23c0-46ff-a130-49a036668870}</UniqueIdentifier>
+      <Extensions>cpp;moc</Extensions>
+      <SourceControlFiles>False</SourceControlFiles>
+    </Filter>
+    <Filter Include="Form Files">
+      <UniqueIdentifier>{99349809-55BA-4b9d-BF79-8FDBB0286EB3}</UniqueIdentifier>
+      <Extensions>ui</Extensions>
+      <ParseFiles>true</ParseFiles>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
+      <Extensions>qrc;*</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\FrameHandlers.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Network.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\VLANDatabase.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gui\mainwindow.cpp">
+      <Filter>src\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_mainwindow.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_mainwindow.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_devselectdialog.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_devselectdialog.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gui\devselectdialog.cpp">
+      <Filter>src\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\qrc_resource.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\src\FrameHandlers.h">
+      <Filter>src</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\general.h">
+      <Filter>src</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Network.h">
+      <Filter>src</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\NetworkDefs.h">
+      <Filter>src</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Singleton.h">
+      <Filter>src</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\VLANDatabase.h">
+      <Filter>src</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\VTPDefs.h">
+      <Filter>src</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\gui\mainwindow.ui">
+      <Filter>src\gui</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\gui\mainwindow.h">
+      <Filter>src\gui</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\gui\devselectdialog.h">
+      <Filter>src\gui</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\gui\devselectdialog.ui">
+      <Filter>src\gui</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\resource.qrc">
+      <Filter>Resource Files</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="GeneratedFiles\ui_mainwindow.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GeneratedFiles\ui_devselectdialog.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Globals.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\GUIDefs.h">
+      <Filter>src</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
