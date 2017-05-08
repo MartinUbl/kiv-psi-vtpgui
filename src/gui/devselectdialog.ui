@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>670</width>
-    <height>385</height>
+    <width>648</width>
+    <height>417</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -70,6 +70,47 @@
      <attribute name="verticalHeaderMinimumSectionSize">
       <number>20</number>
      </attribute>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>VTP settings</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="1,5">
+        <item>
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>VTP domain</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="domainLineEdit">
+          <property name="text">
+           <string>DOMENA</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="1,5">
+        <item>
+         <widget class="QLabel" name="label_2">
+          <property name="text">
+           <string>VTP password</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="passwordLineEdit"/>
+        </item>
+       </layout>
+      </item>
+     </layout>
     </widget>
    </item>
    <item>

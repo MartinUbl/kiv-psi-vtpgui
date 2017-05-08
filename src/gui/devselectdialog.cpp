@@ -6,6 +6,7 @@
 #include <QStandardItemModel>
 
 #include "../Network.h"
+#include "../Globals.h"
 
 devselectdialog::devselectdialog(QWidget *parent) : QDialog(parent)
 {
@@ -75,6 +76,15 @@ devselectdialog::devselectdialog(QWidget *parent) : QDialog(parent)
 void devselectdialog::OKButton_clicked()
 {
     QModelIndex index = ui.devlistView->currentIndex();
+
+    if (ui.domainLineEdit->text().isEmpty())
+    {
+        QMessageBox::information(this, "No domain selected", "You have to choose VTP domain", QMessageBox::StandardButton::Ok);
+        return;
+    }
+
+    sAppGlobals->g_VTPDomain = ui.domainLineEdit->text().toStdString();
+    sAppGlobals->g_VTPPassword = ui.passwordLineEdit->text().toStdString();
 
     if (!index.isValid())
         QMessageBox::information(this, "No interface selected", "You have to select interface from interface list", QMessageBox::StandardButton::Ok);

@@ -326,10 +326,9 @@ bool FrameHandlerService::HandleSubsetAdvertisement(VTPHeader* header, SubsetAdv
         for (auto pr : vlanmap)
             mw->AddVLAN(pr.second->id, pr.second->name, pr.second);
 
-
         // TODO: fix MD5 input, otherwise the MD5 generated is different from MD5 received!
         uint8_t md5target[MD5_DIGEST_LENGTH];
-        vtp_generate_md5(nullptr, m_lastUpdaterIdentity, frame->revision, (char*)header->domain_name, header->domain_len, &frame->data, (uint16_t)(dataLen - 4), md5target, header->version, (char*)m_lastUpdateTimestamp);
+        vtp_generate_md5(sAppGlobals->g_VTPPassword.length() == 0 ? nullptr : sAppGlobals->g_VTPPassword.c_str(), m_lastUpdaterIdentity, frame->revision, (char*)header->domain_name, header->domain_len, &frame->data, (uint16_t)(dataLen - 4), md5target, header->version, (char*)m_lastUpdateTimestamp);
 
         for (size_t j = 0; j < MD5_DIGEST_LENGTH; j++)
             printf("%.2X : %.2X\n", m_lastDigest[j], md5target[j]);
@@ -357,9 +356,9 @@ void FrameHandlerService::SendAdvertRequest(uint32_t startRevision)
     header->version = 2;
     header->code = VTP_MSG_ADVERT_REQUEST;
     header->reserved = 0;
-    header->domain_len = 6;
+    header->domain_len = (uint8_t)sAppGlobals->g_VTPDomain.length();
     memset(header->domain_name, 0, MAX_VTP_DOMAIN_LENGTH);
-    strncpy((char*)header->domain_name, "DOMENA", MAX_VTP_DOMAIN_LENGTH);
+    strncpy((char*)header->domain_name, sAppGlobals->g_VTPDomain.c_str(), MAX_VTP_DOMAIN_LENGTH);
 
     frame->start_revision = startRevision;
 
@@ -498,9 +497,9 @@ void FrameHandlerService::SendVLANDatabase()
     header->version = 2;
     header->code = VTP_MSG_SUMMARY_ADVERT;
     header->followers = 1; // TODO: count VLANs and split to more messages if needed
-    header->domain_len = 6;
+    header->domain_len = (uint8_t)sAppGlobals->g_VTPDomain.length();
     memset(header->domain_name, 0, MAX_VTP_DOMAIN_LENGTH);
-    strncpy((char*)header->domain_name, "DOMENA", MAX_VTP_DOMAIN_LENGTH);
+    strncpy((char*)header->domain_name, sAppGlobals->g_VTPDomain.c_str(), MAX_VTP_DOMAIN_LENGTH);
 
     frame->revision = m_currentRevision;
     frame->updater_id = m_lastUpdaterIdentity;
@@ -559,9 +558,9 @@ void FrameHandlerService::SendVLANDatabase()
     header->version = 2;
     header->code = VTP_MSG_SUBSET_ADVERT;
     header->sequence_nr = 1; // TODO: count VLANs and split to more messages if needed
-    header->domain_len = 6;
+    header->domain_len = (uint8_t)sAppGlobals->g_VTPDomain.length();
     memset(header->domain_name, 0, MAX_VTP_DOMAIN_LENGTH);
-    strncpy((char*)header->domain_name, "DOMENA", MAX_VTP_DOMAIN_LENGTH);
+    strncpy((char*)header->domain_name, sAppGlobals->g_VTPDomain.c_str(), MAX_VTP_DOMAIN_LENGTH);
 
     frame2->revision = m_currentRevision;
 
@@ -658,7 +657,7 @@ bool FrameHandlerService::HandleIncoming(pcap_pkthdr *header, const uint8_t* dat
     uint8_t* vtpdata = (uint8_t*)(((uint8_t*)vtphdr) + sizeof(VTPHeader));
 
     // TODO: configurable domain
-    if (strncmp((const char*)vtphdr->domain_name, "DOMENA", vtphdr->domain_len) != 0)
+    if (strncmp((const char*)vtphdr->domain_name, sAppGlobals->g_VTPDomain.c_str(), vtphdr->domain_len) != 0)
     {
         // VTP format is probably valid, but the message is not for us (our domain); ignore
         return true;

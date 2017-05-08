@@ -12,6 +12,9 @@ class VTPAppGlobals : public CSingleton<VTPAppGlobals>
         MainWindow* g_MainWindow;
 
         uint8_t g_MACAddress[MAC_ADDR_LENGTH];
+
+        std::string g_VTPDomain;
+        std::string g_VTPPassword;
 };
 
 #define sAppGlobals VTPAppGlobals::getInstance()
