@@ -3,6 +3,7 @@
 
 #include <QStringListModel>
 #include <QMessageBox>
+#include <QStandardItemModel>
 
 #include "../Network.h"
 
@@ -21,19 +22,24 @@ devselectdialog::devselectdialog(QWidget *parent) : QDialog(parent)
     }
     else
     {
-        QStringList sl;
-        sl.clear();
+        QStandardItemModel* model = new QStandardItemModel(0, 3, this);
+
+        model->setHorizontalHeaderItem(0, new QStandardItem("Addresses"));
+        model->setHorizontalHeaderItem(1, new QStandardItem("Name"));
+        model->setHorizontalHeaderItem(2, new QStandardItem("Description"));
 
         for (NetworkDeviceListEntry& dev : devList)
         {
-            std::string item = " (";
+            QList<QStandardItem*> wl;
 
             if (dev.addresses.size() == 0)
             {
-                item += "no address";
+                wl.push_back(new QStandardItem("-"));
             }
             else
             {
+                std::string item = "";
+
                 bool frst = true;
                 for (std::string& addr : dev.addresses)
                 {
@@ -44,16 +50,18 @@ devselectdialog::devselectdialog(QWidget *parent) : QDialog(parent)
 
                     item += addr;
                 }
+
+                wl.push_back(new QStandardItem(item.c_str()));
             }
-            item += "), "+dev.pcapName;
+
+            wl.push_back(new QStandardItem(dev.pcapName.c_str()));
             if (dev.pcapDesc.length() > 0)
-                item += ", "+dev.pcapDesc;
+                wl.push_back(new QStandardItem(dev.pcapDesc.c_str()));
+            else
+                wl.push_back(new QStandardItem("-"));
 
-            sl.push_back(item.c_str());
+            model->appendRow(wl);
         }
-
-        QStringListModel* model = new QStringListModel();
-        model->setStringList(sl);
 
         ui.devlistView->setModel(model);
 

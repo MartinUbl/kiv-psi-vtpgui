@@ -116,7 +116,8 @@ void NetworkService::Run()
 void NetworkService::Finalize()
 {
     m_running = false;
-    pcap_close(m_dev);
+    if (m_dev)
+        pcap_close(m_dev);
 
     m_networkThread->join();
 }
