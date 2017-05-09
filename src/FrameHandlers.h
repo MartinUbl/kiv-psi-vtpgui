@@ -38,6 +38,8 @@ class FrameHandlerService : public CSingleton<FrameHandlerService>
         bool HandleSubsetAdvertisement(VTPHeader* header, SubsetAdvertPacketBody* frame, size_t dataLen, FrameDumpContents* dump);
         // handles incoming advertisement request
         bool HandleAdvertisementRequest(VTPHeader* header, AdvertRequestPacketBody* frame, size_t dataLen, FrameDumpContents* dump);
+        // handles incoming join message
+        bool HandleJoin(VTPHeader* header, JoinPacketBody* frame, size_t dataLen, FrameDumpContents* dump);
 
         // fills VLAN info block to vector to be sent in subset advertisement frame
         void FillVLANInfoBlock(VLANRecord* vlan, std::vector<uint8_t> &target, FrameDumpContents* dump, size_t& sBase);
@@ -54,6 +56,8 @@ class FrameHandlerService : public CSingleton<FrameHandlerService>
         void SendVLANDatabase();
         // sends just summary advertisement
         void SendSummary(uint8_t followers = 0);
+        // sends join message
+        void SendJoin();
 };
 
 #define sFrameHandler FrameHandlerService::getInstance()

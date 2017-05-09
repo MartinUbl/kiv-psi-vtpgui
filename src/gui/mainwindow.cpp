@@ -80,6 +80,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui()
     connect(ui.clearAllButton, SIGNAL(clicked()), this, SLOT(ClearAllButton_Clicked()));
     connect(ui.sendVlansButton, SIGNAL(clicked()), this, SLOT(SendVlansButton_Clicked()));
     connect(ui.summarySendButton, SIGNAL(clicked()), this, SLOT(SendSummaryButton_Clicked()));
+    connect(ui.joinSendButton, SIGNAL(clicked()), this, SLOT(SendJoinButton_Clicked()));
     connect(ui.actionAboutApp, SIGNAL(triggered()), this, SLOT(ActionAbout_Clicked()));
     connect(ui.actionTerminateApp, SIGNAL(triggered()), this, SLOT(ActionExit_Clicked()));
 }
@@ -290,6 +291,17 @@ void MainWindow::SendSummaryButton_Clicked()
     }
 
     sFrameHandler->SendSummary(0);
+}
+
+void MainWindow::SendJoinButton_Clicked()
+{
+    if (m_vlans.empty())
+    {
+        QMessageBox::critical(this, "Error", "VLAN database is empty!", QMessageBox::StandardButton::Ok);
+        return;
+    }
+
+    sFrameHandler->SendJoin();
 }
 
 void MainWindow::ActionAbout_Clicked()

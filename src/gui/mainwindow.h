@@ -68,6 +68,7 @@ class MainWindow : public QMainWindow
         void ClearAllButton_Clicked();
         void SendVlansButton_Clicked();
         void SendSummaryButton_Clicked();
+        void SendJoinButton_Clicked();
 
         void ActionAbout_Clicked();
         void ActionExit_Clicked();

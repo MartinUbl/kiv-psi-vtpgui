@@ -180,6 +180,13 @@ struct AdvertRequestPacketBody
     uint32_t start_revision;                    // requested advertised revision
 };
 
+struct JoinPacketBody
+{
+    uint16_t first_vlan_id;                     // first VLAN id present
+    uint16_t last_vlan_id;                      // last VLAN id present
+    uint8_t data;                               // data indicator; used just as base address member
+};
+
 struct SubsetVLANInfoBody
 {
     uint8_t length;                             // this portion length

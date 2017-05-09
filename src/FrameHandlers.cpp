@@ -55,6 +55,18 @@ template<> void ToHostEndianity<AdvertRequestPacketBody>(AdvertRequestPacketBody
     pkt->start_revision = ntohl(pkt->start_revision);
 }
 
+template<> void ToNetworkEndianity<JoinPacketBody>(JoinPacketBody* pkt)
+{
+    pkt->first_vlan_id = htons(pkt->first_vlan_id);
+    pkt->last_vlan_id = htons(pkt->last_vlan_id);
+}
+
+template<> void ToHostEndianity<JoinPacketBody>(JoinPacketBody* pkt)
+{
+    pkt->first_vlan_id = ntohs(pkt->first_vlan_id);
+    pkt->last_vlan_id = ntohs(pkt->last_vlan_id);
+}
+
 template<> void ToNetworkEndianity<SubsetVLANInfoBody>(SubsetVLANInfoBody* pkt)
 {
     pkt->isl_vlan_id = htons(pkt->isl_vlan_id);
@@ -391,6 +403,128 @@ bool FrameHandlerService::HandleAdvertisementRequest(VTPHeader* header, AdvertRe
     ADD_DUMP_ENTRY(dump, "Revision", std::to_string(frame->start_revision), sBase, 4);
 
     return true;
+}
+
+bool FrameHandlerService::HandleJoin(VTPHeader* header, JoinPacketBody* frame, size_t dataLen, FrameDumpContents* dump)
+{
+    ToHostEndianity(frame);
+
+    size_t sBase = 0;
+
+    ADD_DUMP_ENTRY(dump, "VTP version", std::to_string(header->version), sBase, 1);
+    ADD_DUMP_ENTRY(dump, "VTP code", std::to_string(header->code), sBase, 1);
+    ADD_DUMP_ENTRY(dump, "(Reserved)", std::to_string(header->sequence_nr), sBase, 1);
+    ADD_DUMP_ENTRY(dump, "Domain length", std::to_string(header->domain_len), sBase, 1);
+    ADD_DUMP_ENTRY(dump, "Domain name", std::string((const char*)header->domain_name, MAX_VTP_DOMAIN_LENGTH), sBase, MAX_VTP_DOMAIN_LENGTH);
+
+    ADD_DUMP_ENTRY(dump, "First VLAN ID", std::to_string(frame->first_vlan_id), sBase, 2);
+    ADD_DUMP_ENTRY(dump, "Last VLAN ID", std::to_string(frame->last_vlan_id), sBase, 2);
+
+    uint16_t diff = frame->last_vlan_id - frame->first_vlan_id + 1;
+    size_t amount = (diff / 8); // number of bytes needed for bitmap
+
+    // go through bitmap present and print out all vlans here
+    for (size_t i = 0; i < amount; i++)
+    {
+        uint8_t bmask = *(&frame->data + i);
+
+        for (size_t j = 0; j < 8; j++)
+        {
+            if ((bmask >> (7 - j)) & 0x01)
+            {
+                ADD_DUMP_ENTRY(dump, "VLAN", std::to_string( i*8 + j ), sBase, 1);
+                sBase--; // decrement, as we are not finished with this byte yet
+            }
+        }
+
+        sBase++; // NOW increment
+    }
+
+    return true;
+}
+
+void FrameHandlerService::SendJoin()
+{
+    VLANMap const& vlans = sVLANDatabase->GetVLANMap();
+    uint16_t minId = 0; // min ID is always 0 in Cisco frames
+    uint16_t maxId = 0;
+
+    for (auto pr : vlans)
+    {
+        if (pr.first > maxId)
+            maxId = pr.first;
+    }
+
+    size_t amount = (maxId - minId + 1) / 8;
+
+    uint16_t dataSize = (uint16_t)(sizeof(VTPHeader) + sizeof(JoinPacketBody) - 1 + amount);
+    uint8_t *data = new uint8_t[dataSize];
+
+    VTPHeader* header = (VTPHeader*)data;
+    JoinPacketBody* frame = (JoinPacketBody*)(data + sizeof(VTPHeader));
+    uint8_t* bitmap = data + sizeof(VTPHeader) + sizeof(JoinPacketBody) - 1;
+
+    // fill header
+
+    header->version = 2;
+    header->code = VTP_MSG_JOIN;
+    header->reserved = 0;
+    header->domain_len = (uint8_t)sAppGlobals->g_VTPDomain.length();
+    memset(header->domain_name, 0, MAX_VTP_DOMAIN_LENGTH);
+    strncpy((char*)header->domain_name, sAppGlobals->g_VTPDomain.c_str(), MAX_VTP_DOMAIN_LENGTH);
+
+    // fill join summary
+
+    frame->first_vlan_id = minId;
+    frame->last_vlan_id = maxId;
+
+    // fill the rest
+
+    // prepare dump
+    FrameDumpContents* dump = new FrameDumpContents;
+
+    size_t sBase = 0;
+
+    ADD_DUMP_ENTRY(dump, "VTP version", std::to_string(header->version), sBase, 1);
+    ADD_DUMP_ENTRY(dump, "VTP code", std::to_string(header->code), sBase, 1);
+    ADD_DUMP_ENTRY(dump, "(Reserved)", std::to_string(header->reserved), sBase, 1);
+    ADD_DUMP_ENTRY(dump, "Domain length", std::to_string(header->domain_len), sBase, 1);
+    ADD_DUMP_ENTRY(dump, "Domain name", std::string((const char*)header->domain_name, MAX_VTP_DOMAIN_LENGTH), sBase, MAX_VTP_DOMAIN_LENGTH);
+
+    ADD_DUMP_ENTRY(dump, "First VLAN ID", std::to_string(frame->first_vlan_id), sBase, 2);
+    ADD_DUMP_ENTRY(dump, "Last VLAN ID", std::to_string(frame->last_vlan_id), sBase, 2);
+
+    // fill bitmap
+    for (size_t i = 0; i < amount; i++)
+    {
+        bitmap[i] = 0;
+        for (size_t j = 0; j < 8; j++)
+        {
+            if (vlans.find((uint16_t)(i * 8 + j)) != vlans.end())
+            {
+                bitmap[i] |= 1 << (7 - j);
+
+                ADD_DUMP_ENTRY(dump, "VLAN", std::to_string(i * 8 + j), sBase, 1);
+                sBase--; // decrement, as we are not finished with this byte yet
+            }
+        }
+
+        sBase++; // NOW increment
+    }
+
+    ToNetworkEndianity(frame);
+
+    std::ostringstream ss;
+    for (size_t pp = 0; pp < dataSize; pp++)
+        ss << std::setfill('0') << std::setw(2) << std::hex << std::uppercase << (int)data[pp] << " ";
+
+    dump->contents = ss.str().c_str();
+
+    sAppGlobals->g_MainWindow->AddTrafficEntry((uint64_t)time(nullptr), true, header->code, "4 - Join", dump);
+
+    sNetwork->SendUsingTemplate(data, dataSize);
+
+    delete[] data;
 }
 
 void FrameHandlerService::SendAdvertRequest(uint32_t startRevision)
@@ -776,8 +910,8 @@ bool FrameHandlerService::HandleIncoming(pcap_pkthdr *header, const uint8_t* dat
             sAppGlobals->g_MainWindow->AddTrafficEntry((uint64_t)time(nullptr), false, vtphdr->code, "3 - Advertisement Request", dump);
             break;
         case VTP_MSG_JOIN:
+            HandleJoin(vtphdr, reinterpret_cast<JoinPacketBody*>(vtpdata), dataLen, dump);
             sAppGlobals->g_MainWindow->AddTrafficEntry((uint64_t)time(nullptr), false, vtphdr->code, "4 - Join", dump);
-            // not implemented
             break;
         case VTP_MSG_TAKEOVER_REQUEST:  // VTPv3
             sAppGlobals->g_MainWindow->AddTrafficEntry((uint64_t)time(nullptr), false, vtphdr->code, "5 - Takeover request", dump);

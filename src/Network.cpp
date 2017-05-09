@@ -15,6 +15,8 @@
 
 NetworkService::NetworkService()
 {
+    m_headerDataLengthField = nullptr;
+
     // default to 802.3 Ethernet
     m_sendingTemplate = SendingTemplate::NET_SEND_TEMPLATE_NONE;
     SetSendingTemplate(SendingTemplate::NET_SEND_TEMPLATE_8023, 0);
