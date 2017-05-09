@@ -378,9 +378,11 @@ bool FrameHandlerService::HandleSubsetAdvertisement(VTPHeader* header, SubsetAdv
         uint8_t md5target[MD5_DIGEST_LENGTH];
         vtp_generate_md5(sAppGlobals->g_VTPPassword.length() == 0 ? nullptr : (char*)sAppGlobals->g_VTPPassword.c_str(), m_lastUpdaterIdentity, frame->revision, (char*)header->domain_name, header->domain_len, &frame->data, (uint16_t)(dataLen - 4), md5target, header->version, (char*)m_lastUpdateTimestamp);
 
+        /*
         for (size_t j = 0; j < MD5_DIGEST_LENGTH; j++)
             printf("%.2X : %.2X\n", m_lastDigest[j], md5target[j]);
         printf("\n");
+        */
     }
 
     return true;
