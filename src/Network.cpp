@@ -94,6 +94,71 @@ int NetworkService::GetDeviceList(std::list<NetworkDeviceListEntry>& target)
     return 0;
 }
 
+
+#ifdef _WIN32
+
+#include <Windows.h>
+#include <Iphlpapi.h>
+#include <Assert.h>
+#pragma comment(lib, "iphlpapi.lib")
+
+#endif
+
+int getMAC(std::string adapterName, uint8_t* buffer)
+{
+#ifdef _WIN32
+    PIP_ADAPTER_INFO AdapterInfo;
+    DWORD dwBufLen = sizeof(AdapterInfo);
+    char *mac_addr = (char*)malloc(17);
+
+    AdapterInfo = (IP_ADAPTER_INFO *)malloc(sizeof(IP_ADAPTER_INFO));
+    if (AdapterInfo == NULL)
+    {
+        std::cerr << "Error allocating memory needed to call GetAdaptersinfo" << std::endl;
+        return -1;
+    }
+
+    if (GetAdaptersInfo(AdapterInfo, &dwBufLen) == ERROR_BUFFER_OVERFLOW)
+    {
+        AdapterInfo = (IP_ADAPTER_INFO *)malloc(dwBufLen);
+        if (AdapterInfo == NULL)
+        {
+            std::cerr << "Error allocating memory needed to call GetAdaptersinfo" << std::endl;
+            return -1;
+        }
+    }
+
+    if (GetAdaptersInfo(AdapterInfo, &dwBufLen) == NO_ERROR)
+    {
+        for (PIP_ADAPTER_INFO pAdapterInfo = AdapterInfo; pAdapterInfo; pAdapterInfo = pAdapterInfo->Next)
+        {
+            if (pAdapterInfo->AdapterName && strlen(pAdapterInfo->AdapterName) > 2)
+            {
+                std::string adId(pAdapterInfo->AdapterName);
+                if (adapterName.find(adId) == std::string::npos)
+                    continue;
+            }
+            else
+                continue;
+
+            memcpy(buffer, pAdapterInfo->Address, MAC_ADDR_LENGTH);
+
+            free(AdapterInfo);
+
+            return 0;
+        }
+    }
+
+    free(AdapterInfo);
+
+    return -1;
+#else
+    // TODO: linux part
+
+    return -1;
+#endif
+}
+
 int NetworkService::SelectDevice(const char* pcapName, std::string& err)
 {
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -112,11 +177,14 @@ int NetworkService::SelectDevice(const char* pcapName, std::string& err)
         return -1;
     }
 
-    // TODO: retrieve real MAC address
-
     for (size_t i = 0; i < MAC_ADDR_LENGTH; i++)
         sAppGlobals->g_MACAddress[i] = (uint8_t)(0xF0 + i);
     memcpy(m_sourceMacField, sAppGlobals->g_MACAddress, MAC_ADDR_LENGTH);
+
+    if (getMAC(pcapName, m_sourceMacField) < 0)
+        std::cerr << "Could not find adapter MAC address, using mocked" << std::endl;
+    else
+        memcpy(sAppGlobals->g_MACAddress, m_sourceMacField, MAC_ADDR_LENGTH);
 
     return 0;
 }
