@@ -13,9 +13,27 @@
 #include "FrameHandlers.h"
 #include "Globals.h"
 
+// "translations" of VLAN features for GUI output
+const char* VLANFeatureNames[MAX_VLAN_FEATURE] = {
+    "Feature - none",
+    "Ring No.",
+    "Bridge No.",
+    "STP",
+    "Parent",
+    "Trans1",
+    "Trans2",
+    "BridgeMode",
+    "ARE Hops",
+    "STE Hops",
+    "BackupCRF"
+};
+
 NetworkService::NetworkService()
 {
     m_headerDataLengthField = nullptr;
+    m_networkThread = nullptr;
+    m_dev = nullptr;
+    m_header = nullptr;
 
     // default to 802.3 Ethernet
     m_sendingTemplate = SendingTemplate::NET_SEND_TEMPLATE_NONE;
@@ -26,7 +44,6 @@ NetworkService::NetworkService()
 int NetworkService::GetDeviceList(std::list<NetworkDeviceListEntry>& target)
 {
     pcap_if_t *alldevs, *d;
-    int i = 0;
     char errbuf[PCAP_ERRBUF_SIZE];
     char dsaddr[32];
     pcap_addr* ad;
@@ -134,7 +151,8 @@ void NetworkService::Finalize()
     if (m_dev)
         pcap_close(m_dev);
 
-    m_networkThread->join();
+    if (m_networkThread)
+        m_networkThread->join();
 }
 
 bool NetworkService::HasSendingTemplate()
@@ -178,7 +196,7 @@ void NetworkService::SetSendingTemplate(SendingTemplate templType, uint16_t vlan
             memcpy(eh->src_mac, sAppGlobals->g_MACAddress, MAC_ADDR_LENGTH);
             memcpy(eh->dest_mac, VTP_Dest_MAC, MAC_ADDR_LENGTH);
             eh->tpid = DOT1Q_VTP_TPID;
-            eh->tci = ((DOT1Q_VTP_PCP & 0x0007) << 13) | ((DOT1Q_VTP_DEI & 0x0001) << 12) | vlanId & 0x0FFF;
+            eh->tci = ((DOT1Q_VTP_PCP & 0x0007) << 13) | ((DOT1Q_VTP_DEI & 0x0001) << 12) | (vlanId & 0x0FFF);
             eh->frame_length = 0;
             m_headerDataLengthField = &eh->frame_length;
             m_sourceMacField = eh->src_mac;

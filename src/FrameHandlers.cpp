@@ -388,7 +388,7 @@ bool FrameHandlerService::HandleSubsetAdvertisement(VTPHeader* header, SubsetAdv
     return true;
 }
 
-bool FrameHandlerService::HandleAdvertisementRequest(VTPHeader* header, AdvertRequestPacketBody* frame, size_t dataLen, FrameDumpContents* dump)
+bool FrameHandlerService::HandleAdvertisementRequest(VTPHeader* header, AdvertRequestPacketBody* frame, size_t /*dataLen*/, FrameDumpContents* dump)
 {
     ToHostEndianity(frame);
 
@@ -407,7 +407,7 @@ bool FrameHandlerService::HandleAdvertisementRequest(VTPHeader* header, AdvertRe
     return true;
 }
 
-bool FrameHandlerService::HandleJoin(VTPHeader* header, JoinPacketBody* frame, size_t dataLen, FrameDumpContents* dump)
+bool FrameHandlerService::HandleJoin(VTPHeader* header, JoinPacketBody* frame, size_t /*dataLen*/, FrameDumpContents* dump)
 {
     ToHostEndianity(frame);
 

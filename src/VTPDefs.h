@@ -118,19 +118,7 @@ enum VLANFeature
 };
 
 // "translations" of VLAN features for GUI output
-static const char* VLANFeatureNames[MAX_VLAN_FEATURE] = {
-    "Feature - none",
-    "Ring No.",
-    "Bridge No.",
-    "STP",
-    "Parent",
-    "Trans1",
-    "Trans2",
-    "BridgeMode",
-    "ARE Hops",
-    "STE Hops",
-    "BackupCRF"
-};
+extern const char* VLANFeatureNames[MAX_VLAN_FEATURE];
 
 // domain name field length
 #define MAX_VTP_DOMAIN_LENGTH 32
