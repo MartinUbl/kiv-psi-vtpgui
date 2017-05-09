@@ -122,7 +122,7 @@ int8_t vtp_generate_md5(char *secret, uint32_t updater, uint32_t revision, char 
 
     vtp_summ->updater_id = htonl(updater);
     vtp_summ->revision = htonl(revision);
-    memcpy(vtp_summ->update_timestamp, timestamp, VTP_TIMESTAMP_LEN);
+    memcpy(vtp_summ->update_timestamp, timestamp, VTP_TIMESTAMP_LENGTH);
 
     memcpy((void *)(data + MD5_DIGEST_LENGTH + sizeof(VTPHeader) + sizeof(SummaryAdvertPacketBody)), mysteryData, MYSTERY_DATA_LEN);
 
@@ -230,8 +230,8 @@ bool FrameHandlerService::HandleSummaryAdvertisement(VTPHeader* header, SummaryA
             // TODO: signal GUI about newer revision
         }
 
-        memcpy(m_lastDigest, frame->md5_digest, MD5_DIGEST_LEN);
-        memcpy(m_lastUpdateTimestamp, frame->update_timestamp, VTP_TIMESTAMP_LEN);
+        memcpy(m_lastDigest, frame->md5_digest, MD5_DIGEST_LENGTH);
+        memcpy(m_lastUpdateTimestamp, frame->update_timestamp, VTP_TIMESTAMP_LENGTH);
         m_lastUpdaterIdentity = frame->updater_id;
     }
     // received older revision
@@ -241,8 +241,8 @@ bool FrameHandlerService::HandleSummaryAdvertisement(VTPHeader* header, SummaryA
     {
         std::cout << "VTP: received current revision summary rev: " << frame->revision << std::endl;
 
-        memcpy(m_lastDigest, frame->md5_digest, MD5_DIGEST_LEN);
-        memcpy(m_lastUpdateTimestamp, frame->update_timestamp, VTP_TIMESTAMP_LEN);
+        memcpy(m_lastDigest, frame->md5_digest, MD5_DIGEST_LENGTH);
+        memcpy(m_lastUpdateTimestamp, frame->update_timestamp, VTP_TIMESTAMP_LENGTH);
         m_lastUpdaterIdentity = frame->updater_id;
     }
 

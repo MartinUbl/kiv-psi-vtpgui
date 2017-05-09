@@ -143,6 +143,8 @@ void MainWindow::AddTrafficEntry(uint64_t timestamp, bool outgoing, uint8_t code
     m_trafficModel->appendRow(wl);
 
     m_trafficDumps.push_back(dumpProps);
+
+    ui.trafficTableView->scrollToBottom();
 }
 
 void MainWindow::ClearVLANView()
